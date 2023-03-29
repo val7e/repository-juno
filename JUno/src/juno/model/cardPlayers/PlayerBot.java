@@ -8,12 +8,16 @@ import java.util.ArrayList;
 import java.util.Random;
 import juno.model.cardDeck.*;
 
-public class BotPlayer extends Player {
-    private Random rand;
+public class PlayerBot extends Player {
+	private String nickname;
+    private Random random;
+    private final String[] nicknames = {"Pam", "Jim", "Dwight", "Michael"};
 
-    public BotPlayer(String name) {
-        super(name);
-        rand = new Random();
+    public PlayerBot() {
+    	random = new Random();
+    	int randomIndex = random.nextInt(nicknames.length);
+    	this.nickname = nicknames[randomIndex];
+        
     }
 
     public Card playCard(Card topCard) {
@@ -25,14 +29,14 @@ public class BotPlayer extends Player {
             if (card.getColor().equals(topCard.getColor()) || card.getValue().equals(topCard.getValue())) {
                 matchingCards.add(card);
             }
-            if (!card.getValue().equals(Value.COLORE) && !card.getValue().equals(Value.PESCA_QUATTRO)) {
+            if (!card.getValue().equals(Value.CAMBIO_COLORE) && !card.getValue().equals(Value.PIU_QUATTRO)) {
                 nonWildCards.add(card);
             }
         }
 
         // Check for wild cards
         for (Card card : hand) {
-            if (card.getValue().equals(Value.COLORE) || card.getValue().equals(Value.PESCA_QUATTRO)) {
+            if (card.getValue().equals(Value.CAMBIO_COLORE) || card.getValue().equals(Value.PIU_QUATTRO)) {
                 matchingCards.add(card);
             }
         }
