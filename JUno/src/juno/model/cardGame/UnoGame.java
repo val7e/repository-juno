@@ -1,10 +1,13 @@
 package juno.model.cardGame;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Observable;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Stack;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -64,24 +67,40 @@ public class UnoGame extends Observable {
 		return this;
 	}
 
-	public void startGame() {
+	public void startGame(Queue<Card> ipc) {
+		/**
+		 * - se e' una carta azione: subire l'azione (auto)
+		 * - altrimenti pescare e aggiungere la carta alla mano (auto)
+		 * - ottenere le carte giocabili (auto)
+		 * - giocarne una (auto/manuale)
+		 * - next player
+		 */
 		while (!this.gameOver) {
 			for (Player p: this.playersIterator) {
-				// List<Card> playableCards = this.getPlayableCards(getLastDiscardedCard());
-				// checkDiscardedCard();
+				List<Card> hand = this.playersIterator.getCurrentPlayerHand();
+				String nick = this.playersIterator.getCurrentPlayer().getNickname();
+				System.out.println(String.format("[%s] - HAND, %s", nick, Arrays.toString(hand.toArray())));
+
 				Card lastDiscarded = getLastDiscardedCard();
 				if (lastDiscarded.isActionCard()) this.checkCardAction(lastDiscarded, gameOver);
+
 				this.playersIterator.getCurrentPlayerHand().add(this.deck.drawCard());
 				List<Card> playables = this.getPlayableCards(lastDiscarded);
-				
-				/**
-				 * - se e' una carta azione: subire l'azione (auto)
-				 * - altrimenti pescare e aggiungere la carta alla mano (auto)
-				 * - ottenere le carte giocabili (auto)
-				 * - giocarne una (auto/manuale)
-				 * - next player
-				 */
-
+				Card choosen;
+				if (!p.getIsBot()) {
+					do {
+						choosen = ipc.poll();
+						if (choosen != null) break;
+					} while (true);
+				}
+				else {
+					choosen = playables.get(new Random().nextInt(playables.size()));
+				}
+				try {
+					TimeUnit.SECONDS.sleep(3);
+				} catch (Exception e) {
+					System.out.println("eccezione in timer");
+				}
 			}
 		}
 	}
