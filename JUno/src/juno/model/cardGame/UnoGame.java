@@ -79,11 +79,9 @@ public class UnoGame extends Observable {
 			for (Player p: this.playersIterator) {
 				List<Card> hand = this.playersIterator.getCurrentPlayerHand();
 				String nick = this.playersIterator.getCurrentPlayer().getNickname();
-				System.out.println(String.format("[%s] - HAND, %s", nick, Arrays.toString(hand.toArray())));
-
 				Card lastDiscarded = getLastDiscardedCard();
 				if (lastDiscarded.isActionCard()) this.checkCardAction(lastDiscarded, gameOver);
-
+				
 				this.playersIterator.getCurrentPlayerHand().add(this.deck.drawCard());
 				List<Card> playables = this.getPlayableCards(lastDiscarded);
 				Card choosen;
@@ -96,6 +94,11 @@ public class UnoGame extends Observable {
 				else {
 					choosen = playables.get(new Random().nextInt(playables.size()));
 				}
+				
+				System.out.println(String.format("[%s]", nick));
+				System.out.println(String.format("hand: %s", Arrays.toString(hand.toArray())));
+				System.out.println(String.format("discarded: %s", lastDiscarded));
+				System.out.println(String.format("choosen: %s", choosen));
 				try {
 					TimeUnit.SECONDS.sleep(3);
 				} catch (Exception e) {
