@@ -56,7 +56,7 @@ public class Deck {
     public String getDeck() {
     	return cards.toString();
     }
-    
+
     public void restartInvalidDeck(Card card) {
 		add(card);
 		shuffleCards();

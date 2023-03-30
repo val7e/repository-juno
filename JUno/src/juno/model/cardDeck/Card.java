@@ -31,6 +31,15 @@ public class Card {
     	return score;
     }
 
+    public boolean isActionCard() {
+        return this.value == Value.CAMBIO_COLORE ||
+        this.value == Value.PIU_DUE ||
+        this.value == Value.PIU_QUATTRO ||
+        this.value == Value.SALTO ||
+        this.value == Value.CAMBIO_COLORE ||
+        this.value == Value.INVERTI;
+    }
+
     @Override
     public String toString() {
         return color + "_" + value;

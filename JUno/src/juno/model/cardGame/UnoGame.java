@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Observable;
 import java.util.Random;
 import java.util.Stack;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 
@@ -30,15 +31,13 @@ public class UnoGame extends Observable {
 	private Stack<Card> discardDeck;
 	private Color currentColor;
 	private Value currentValue;
-	private PlayersIterator iterator;
-	private boolean gameOver;
+	private PlayersIterator playersIterator;
+	private boolean gameOver = false;
 	
 	public UnoGame(List<Player> players) {
         this.deck = new Deck();
         this.discardDeck = new Stack<Card>();
-        this.iterator = new PlayersIterator(players);
-        
-        start();
+        this.playersIterator = new PlayersIterator(players);
 	}
 	/**
 	 * This method initialize the game following these points:
@@ -49,34 +48,42 @@ public class UnoGame extends Observable {
 	 * 5. invokes getPlayableCards, a class method that filters each players hand to find the playable cards and it stores it into a list of cards
 	 */
 	
-	public void start() {
-		
+	public UnoGame prepareGame() {
 		// Shuffle the deck and deal cards to each player
         deck.shuffleCards();
-        
         //get hands to players
-        getPlayersHands(deck, iterator);
-		System.out.println("MAIN: " +iterator.getHandsMap());
-		
-		//extracting the first card
-		Card firstCard = checkFirstCard(deck);
-//		Card firstCard = new Card(Color.JOLLY, Value.CAMBIO_COLORE, Value.CAMBIO_COLORE.get);
-		System.out.println("MAIN: Current card: " + firstCard);
-		
-		boolean isFirst = true;
-		//evaluating which action the first card on top do
-		checkCardAction(firstCard, isFirst);
-		isFirst = false;
-		
-		System.out.println("MAIN:" + currentColor +" " +currentValue);
-		
-		//calculating for each player their playable cards
-		List<Card> playableCards = getPlayableCards(firstCard, iterator);
-		
-		System.out.println("MAIN: It's " + iterator.getCurrentPlayer().getNickname() + " turn!" + playableCards);
-		
-		
-		
+        for (Player player : playersIterator.getPlayers()) {
+			ArrayList<Card> hand = new ArrayList<Card>();
+            for (int i = 0; i < 7; i++) {
+                hand.add(deck.drawCard());
+            }
+            playersIterator.getHandsMap().put(player.getNickname(), hand);
+		}
+		// draw first card
+		discardDeck.add(deck.drawCard());
+		return this;
+	}
+
+	public void startGame() {
+		while (!this.gameOver) {
+			for (Player p: this.playersIterator) {
+				// List<Card> playableCards = this.getPlayableCards(getLastDiscardedCard());
+				// checkDiscardedCard();
+				Card lastDiscarded = getLastDiscardedCard();
+				if (lastDiscarded.isActionCard()) this.checkCardAction(lastDiscarded, gameOver);
+				this.playersIterator.getCurrentPlayerHand().add(this.deck.drawCard());
+				List<Card> playables = this.getPlayableCards(lastDiscarded);
+				
+				/**
+				 * - se e' una carta azione: subire l'azione (auto)
+				 * - altrimenti pescare e aggiungere la carta alla mano (auto)
+				 * - ottenere le carte giocabili (auto)
+				 * - giocarne una (auto/manuale)
+				 * - next player
+				 */
+
+			}
+		}
 	}
 	
 	/**
@@ -85,58 +92,52 @@ public class UnoGame extends Observable {
 	 * @param deck is the current deck of the game
 	 * @return the first card
 	 */
-	private Card checkFirstCard(Deck deck) {
-		Card firstCard = deck.drawCard();
-		//Card firstCard = new Card(Color.JOLLY, Value.CAMBIO_COLORE, Value.CAMBIO_COLORE.getScore());
-		while (firstCard.getValue().equals(Value.PIU_QUATTRO)) {
-            
-            deck.restartInvalidDeck(firstCard);
-            firstCard = deck.drawCard();
-        }
-		return firstCard;
+	private void checkDiscardedCard() {
+
+		Card cardToCheck = this.getLastDiscardedCard();
+
 	}
 	
+	private Card getLastDiscardedCard() {
+		return this.discardDeck.get(0);
+	}
+
 	/**
 	 * The core of the following method is a switch that decides which action method to call based on the value of the extracted card.
-	 * @param topCard the extracted card
+	 * @param playedActionCard the extracted card
 	 * @param isFirst a boolean which tells the method if is the first card extracted or not 
 	 */
-	private void checkCardAction(Card topCard, boolean isFirst) {
+	private void checkCardAction(Card playedActionCard, boolean isFirst) {
 		
-		currentColor = topCard.getColor();
-		currentValue = topCard.getValue();
+		currentColor = playedActionCard.getColor();
+		currentValue = playedActionCard.getValue();
+		discardCard(playedActionCard);
 		switch (currentValue) {
 		    case SALTO -> {
-		    	discardCard(topCard);
 		    	skipAction();
 		    }
 		    case INVERTI -> {
-		    	discardCard(topCard);
-		    	reverseCard();
+		    	reverseTurn();
 		    }
 		    case PIU_DUE -> {
-		    	discardCard(topCard);
 		    	if (isFirst) drawTwoAction();
 		    	else {
-		    		iterator.nextPlayer();
+		    		playersIterator.nextPlayer();
 		    		drawTwoAction();
 		    	}
 		    }
 		    case PIU_QUATTRO -> {
-		    	discardCard(topCard);
 		    	currentColor = chooseColor(currentColor);
 		    	drawFourJolly();
 		    }
 		    case CAMBIO_COLORE -> {
-		    	discardCard(topCard);
 		    	// change color method: for now it picks a random color
 		    	// handle it for CAMBIO_COLORE and PIU_QUATTRO
 		    	currentColor = chooseColor(currentColor);
-		    	if (isFirst) System.out.println(iterator.getCurrentPlayer().getNickname() + " has chosen the color " + currentColor);
-		    	else iterator.nextPlayer();
+		    	if (isFirst) System.out.println(playersIterator.getCurrentPlayer().getNickname() + " has chosen the color " + currentColor);
+		    	else playersIterator.nextPlayer();
 		    }
 		    default -> {
-		    	discardCard(topCard);
 		    	System.out.println("SWITCH: A numbered card has been extracted");
 		    }
 		}
@@ -147,17 +148,17 @@ public class UnoGame extends Observable {
 	 * This method is invoked when a SALTO card is played.
 	 */
 	private void skipAction() {
-		iterator.nextPlayer();
-		System.out.println("SKIP: New current player: " + iterator.getCurrentPlayer().getNickname());
+		playersIterator.nextPlayer();
+		System.out.println("SKIP: New current player: " + playersIterator.getCurrentPlayer().getNickname());
 	}
 	
 	/**
 	 * This method is invoked when a INVERTI card is played.
 	 */
-	private void reverseCard() {
-		iterator.reverseDirection();
-		iterator.nextPlayer();
-		System.out.println("REVERSE: New current player: " + iterator.getCurrentPlayer().getNickname());
+	private void reverseTurn() {
+		playersIterator.reverseDirection();
+		playersIterator.nextPlayer();
+		System.out.println("REVERSE: New current player: " + playersIterator.getCurrentPlayer().getNickname());
 	}
 	
 	/**
@@ -165,12 +166,12 @@ public class UnoGame extends Observable {
 	 */
 	private void drawTwoAction() {
 		for (int i = 0; i<2; i++) {	
-			iterator.getHandsMap().get(iterator.getCurrentPlayer().getNickname()).add(deck.drawCard());
+			playersIterator.getCurrentPlayerHand().add(deck.drawCard());
 		}
-		System.out.println("DRAW TWO: " + iterator.getCurrentPlayer().getNickname() + " " + iterator.getHandsMap().get(iterator.getCurrentPlayer().getNickname()));
+		System.out.println("DRAW TWO: " + playersIterator.getCurrentPlayer().getNickname() + " " + playersIterator.getCurrentPlayerHand());
 		//the player that draws 2 cards skips the turn
-		iterator.nextPlayer();
-		System.out.println("DRAW TWO: New current player: " + iterator.getCurrentPlayer().getNickname());
+		playersIterator.nextPlayer();
+		System.out.println("DRAW TWO: New current player: " + playersIterator.getCurrentPlayer().getNickname());
 	}
 	
 	/**
@@ -178,13 +179,13 @@ public class UnoGame extends Observable {
 	 */
 	private void drawFourJolly() {
 		for (int i = 0; i<4; i++) {	
-			iterator.getHandsMap().get(iterator.nextPlayer().getNickname()).add(deck.drawCard());
+			playersIterator.getHandsMap().get(playersIterator.nextPlayer().getNickname()).add(deck.drawCard());
 		}
-		System.out.println("DRAW FOUR: " + iterator.getCurrentPlayer().getNickname() + " " + iterator.getHandsMap().get(iterator.getCurrentPlayer().getNickname()));
+		System.out.println("DRAW FOUR: " + playersIterator.getCurrentPlayer().getNickname() + " " + playersIterator.getCurrentPlayerHand());
 		
 		//the player that draws 4 cards skips the turn
-		iterator.nextPlayer();
-		System.out.println("DRAW FOUR: New current player: " + iterator.getCurrentPlayer().getNickname());
+		playersIterator.nextPlayer();
+		System.out.println("DRAW FOUR: New current player: " + playersIterator.getCurrentPlayer().getNickname());
 	}
 	
 	/**
@@ -220,30 +221,30 @@ public class UnoGame extends Observable {
 		deck.shuffleCards();
 	}
 	
-	
-	private void getPlayersHands(Deck currentDeck, PlayersIterator iterator) {
-		for (Player player : iterator.getPlayers()) {
-			ArrayList<Card> hand = new ArrayList<Card>();
-            for (int i = 0; i < 7; i++) {
-                hand.add(deck.drawCard());
-            }
-            iterator.getHandsMap().put(player.getNickname(), hand);
-		}
-	}
-	
-	private List<Card> getPlayableCards(Card topCard, PlayersIterator iterator) {
+	private List<Card> getPlayableCards(Card topCard) {
+		String currentPlayer = this.playersIterator.getCurrentPlayer().getNickname();
+		Predicate<Card> colorCountPredicate = x->x.getColor() == currentColor;
+		Predicate<Card> piuQuattroFilter = x->x.getValue() != Value.PIU_QUATTRO;
 		
-		
-		String currentPlayer = iterator.getCurrentPlayer().getNickname();
-		List<Card> playableCards = iterator.getHandsMap().get(currentPlayer)
-				.stream().filter(w -> w.getColor()==currentColor || w.getValue()==currentValue || w.getValue()==Value.CAMBIO_COLORE || w.getValue()==Value.PIU_QUATTRO)
-				.collect(Collectors.toList());
-		return playableCards.stream().filter(x->x.getColor()==currentColor).count()>0? 
-			       playableCards.stream().filter(x->x.getValue()!=Value.PIU_QUATTRO).collect(Collectors.toList()):playableCards;
+		Predicate<Card> playableFilter = w -> {
+			return w.getColor() == currentColor ||
+			w.getValue() == currentValue ||
+			w.getValue() == Value.CAMBIO_COLORE ||
+			w.getValue() == Value.PIU_QUATTRO;
+		};
+
+		List<Card> playableCards = this.playersIterator
+			.getHand(currentPlayer)
+			.stream().filter(playableFilter)
+			.collect(Collectors.toList());
+		long currentColorCards = playableCards.stream().filter(colorCountPredicate).count();
+		// togli il piu quattro se c'e almeno una carta del colore corrente nella mano
+		List<Card> noPiuQuattroFiltered = playableCards.stream().filter(piuQuattroFilter).collect(Collectors.toList());
+		return currentColorCards > 0 ? noPiuQuattroFiltered : playableCards;
 	}
 	
 	private Card playCard(Card card, PlayersIterator iterator) {
-		List<Card> playableCards = getPlayableCards(card, iterator);
+		List<Card> playableCards = getPlayableCards(card);
 		// the player has to choose the card from playableCards
 		return card;
 		

@@ -10,6 +10,15 @@ public class Player {
 	private int gamesWon;
 	private int gamesLost;
 	private int expPoints = 1;
+	private boolean isBot = true;
+
+	public boolean getIsBot() {
+		return this.isBot;
+	}
+
+	public void setIsBot(boolean value) {
+		this.isBot = value;
+	}
 
     public Player(String nickname) {
         this.nickname = nickname;
