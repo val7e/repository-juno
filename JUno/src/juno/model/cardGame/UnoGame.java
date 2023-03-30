@@ -84,7 +84,7 @@ public class UnoGame extends Observable {
 				
 				this.playersIterator.getCurrentPlayerHand().add(this.deck.drawCard());
 				List<Card> playables = this.getPlayableCards(lastDiscarded);
-				Card choosen;
+				Card choosen = null;
 				if (!p.getIsBot()) {
 					do {
 						choosen = ipc.poll();
@@ -92,9 +92,11 @@ public class UnoGame extends Observable {
 					} while (true);
 				}
 				else {
-					choosen = playables.get(new Random().nextInt(playables.size()));
+					int size = playables.size();
+					if (size > 0) choosen = playables.remove(new Random().nextInt(size));
 				}
-				
+				if (choosen == null) this.skipAction();
+				else this.discardDeck.add(choosen);
 				System.out.println(String.format("[%s]", nick));
 				System.out.println(String.format("hand: %s", Arrays.toString(hand.toArray())));
 				System.out.println(String.format("discarded: %s", lastDiscarded));
@@ -121,7 +123,7 @@ public class UnoGame extends Observable {
 	}
 	
 	private Card getLastDiscardedCard() {
-		return this.discardDeck.get(0);
+		return this.discardDeck.lastElement();
 	}
 
 	/**
@@ -171,7 +173,7 @@ public class UnoGame extends Observable {
 	 */
 	private void skipAction() {
 		playersIterator.nextPlayer();
-		System.out.println("SKIP: New current player: " + playersIterator.getCurrentPlayer().getNickname());
+		// System.out.println("SKIP: New current player: " + playersIterator.getCurrentPlayer().getNickname());
 	}
 	
 	/**
@@ -180,7 +182,7 @@ public class UnoGame extends Observable {
 	private void reverseTurn() {
 		playersIterator.reverseDirection();
 		playersIterator.nextPlayer();
-		System.out.println("REVERSE: New current player: " + playersIterator.getCurrentPlayer().getNickname());
+		// System.out.println("REVERSE: New current player: " + playersIterator.getCurrentPlayer().getNickname());
 	}
 	
 	/**
@@ -190,10 +192,10 @@ public class UnoGame extends Observable {
 		for (int i = 0; i<2; i++) {	
 			playersIterator.getCurrentPlayerHand().add(deck.drawCard());
 		}
-		System.out.println("DRAW TWO: " + playersIterator.getCurrentPlayer().getNickname() + " " + playersIterator.getCurrentPlayerHand());
+		// System.out.println("DRAW TWO: " + playersIterator.getCurrentPlayer().getNickname() + " " + playersIterator.getCurrentPlayerHand());
 		//the player that draws 2 cards skips the turn
 		playersIterator.nextPlayer();
-		System.out.println("DRAW TWO: New current player: " + playersIterator.getCurrentPlayer().getNickname());
+		// System.out.println("DRAW TWO: New current player: " + playersIterator.getCurrentPlayer().getNickname());
 	}
 	
 	/**
