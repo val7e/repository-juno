@@ -12,7 +12,6 @@ public class Test {
 		
 		//array di giocatori va costrutito in un metodo di avvio della partita
 		// Player playerUser = new Player("val7e");
-		System.out.println("cioao");
 		Player playerBot0 = new Player("jim");
 		Player playerBot1 = new Player("pam");	
 		Player playerBot2 = new Player("dwight");
